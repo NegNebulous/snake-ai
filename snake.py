@@ -3,9 +3,11 @@ import pygame, random, math, time, datetime, copy
 
 SCALE = [15, 15]
 RELSIZE = [40, 40]
+CHECK_PERCENT = (5/5)
 FRAME_DELAY = 0
 screenf = None
 screen_width, screen_height = (RELSIZE[0]+1)*SCALE[0], (RELSIZE[1]+1)*SCALE[1]
+transparent = None
 
 def randcolor_bright():
     c = [random.random()*256, random.random()*256, random.random()*256]
@@ -88,18 +90,25 @@ def inBound(pos):
 
 def fillBound2(bound, check, checked=None):
     if checked==None:
+        #pygame.draw.rect(transparent, (255, 0, 255), (check[0]*SCALE[0], check[1]*SCALE[1], SCALE[0], SCALE[1]))
         checked={f'{check}': True}
-    if len(checked) >= (1/10)*RELSIZE[0]*RELSIZE[1]:
-        while len(checked) > (1/10)*RELSIZE[0]*RELSIZE[1]:
+    if len(checked) >= CHECK_PERCENT*RELSIZE[0]*RELSIZE[1]:
+        while len(checked) > CHECK_PERCENT*RELSIZE[0]*RELSIZE[1]:
             checked.pop(list(checked.keys())[-1])
         return checked
     dirs = []
-    for i in [getChange(x) for x in range(4)]:
+    changes = [getChange(x) for x in range(4)]
+    #random.shuffle(changes)
+    for i in changes:
         new_pos = [check[0] + i[0], check[1] + i[1]]
         if f'{new_pos}' not in checked:
             if inBound(new_pos):
                 if new_pos not in bound:
                     dirs.append(new_pos)
+                    #print(new_pos)
+                    if len(checked) < CHECK_PERCENT*RELSIZE[0]*RELSIZE[1]:
+                        pass
+                        #pygame.draw.rect(transparent, (255, 0, 255), (new_pos[0]*SCALE[0], new_pos[1]*SCALE[1], SCALE[0], SCALE[1]))
                     checked[f'{new_pos}'] = new_pos
     #checked += dirs
     if len(dirs) == 0:
@@ -108,11 +117,40 @@ def fillBound2(bound, check, checked=None):
         checked = fillBound2(bound, d, checked)
     return checked
 
+def fillBound2_shuffle(bound, check, checked=None):
+    if checked==None:
+        #pygame.draw.rect(transparent, (255, 0, 255), (check[0]*SCALE[0], check[1]*SCALE[1], SCALE[0], SCALE[1]))
+        checked={f'{check}': True}
+    if len(checked) >= CHECK_PERCENT*RELSIZE[0]*RELSIZE[1]:
+        while len(checked) > CHECK_PERCENT*RELSIZE[0]*RELSIZE[1]:
+            checked.pop(list(checked.keys())[-1])
+        return checked
+    dirs = []
+    changes = [getChange(x) for x in range(4)]
+    random.shuffle(changes)
+    for i in changes:
+        new_pos = [check[0] + i[0], check[1] + i[1]]
+        if f'{new_pos}' not in checked:
+            if inBound(new_pos):
+                if new_pos not in bound:
+                    dirs.append(new_pos)
+                    #print(new_pos)
+                    if len(checked) < CHECK_PERCENT*RELSIZE[0]*RELSIZE[1]:
+                        pass
+                        #pygame.draw.rect(transparent, (255, 0, 255), (new_pos[0]*SCALE[0], new_pos[1]*SCALE[1], SCALE[0], SCALE[1]))
+                    checked[f'{new_pos}'] = new_pos
+    #checked += dirs
+    if len(dirs) == 0:
+        return checked
+    for d in dirs:
+        checked = fillBound2_shuffle(bound, d, checked)
+    return checked
+
 def fillBound(bound, check, checked=None):
     if checked==None:
         checked=[check]
-    if len(checked) >= (1/10)*RELSIZE[0]*RELSIZE[1]:
-        while len(checked) > (1/10)*RELSIZE[0]*RELSIZE[1]:
+    if len(checked) >= CHECK_PERCENT*RELSIZE[0]*RELSIZE[1]:
+        while len(checked) > CHECK_PERCENT*RELSIZE[0]*RELSIZE[1]:
             checked.pop(-1)
         return checked
 
@@ -147,6 +185,31 @@ def getValue2(pos, pos2, tail):
 
         #start_time = getMs()
         checked = fillBound2(tail, pos)
+        #calc_time[0] += getMs() - start_time
+        #calc_time[1] += 1
+        #print(len(checked))
+        if len(checked) < 10:
+            #print(len(checked))
+            return len(checked)/1000
+        return 1/distance(pos, pos2) + len(checked)/1000
+    except:
+        #print('d')
+        return 99999
+
+def getValue2_shuffle(pos, pos2, tail):
+    global calc_time
+    #if move recusrive full area is less than tail length then -1 (or check all make area a component)
+    if pos in tail:
+        #print('a')
+        return -99999
+    elif pos[0] < 0 or pos[1] < 0 or pos[0] > RELSIZE[0] or pos[1] > RELSIZE[1]:
+        #print('b')
+        return -99999
+    try:
+        #print('c')
+
+        #start_time = getMs()
+        checked = fillBound2_shuffle(tail, pos)
         #calc_time[0] += getMs() - start_time
         #calc_time[1] += 1
         #print(len(checked))
@@ -298,7 +361,7 @@ def tint(surf, tint_color):
     return surf
 
 def main():
-    global d_time, world_speed, LOST, screenf
+    global d_time, world_speed, LOST, screenf, transparent
 
     pygame.init()
     clock = pygame.time.Clock()
@@ -322,7 +385,7 @@ def main():
 
     #apples = [Apple((255,0,0)), Apple((0,0,255))]
     apples = [Apple((255,0,0))]
-    #snakes = [Snake([0,0], (0,255,0), getValue1), Snake([0,0], (255,0,255), getValue2)]
+    #snakes = [Snake([0,0], (0,255,0), getValue2), Snake([0,0], (255,0,255), getValue2_shuffle)]
     snakes = [Snake([0,0], (0,255,0), getValue2)]
 
     move = -1
@@ -360,16 +423,18 @@ def main():
         #if getMs() - last_time >= FRAME_DELAY:
         if True:
             #print(move)
-            #transparent.blit(screenf, (0,0))
+            #transparent.blit(transparent, (0,0))
             #transparent.set_alpha(253)
+            transparent.fill(0)
             screenf.fill(0)
-            #screenf.blit(transparent, (0,0))
+            #transparent.set_alpha(253)
 
             textSurf = myfont.render(f'Score: {snakes[0].score}', True, (0,255,0))
             screenf.blit(textSurf, ( int(screen_width/2 - textSurf.get_size()[0]/2), 0 ))
 
-            #textSurf = myfont.render(f'Score: {snakes[1].score}', True, snakes[1].color)
-            #screenf.blit(textSurf, ( int(screen_width/2 - textSurf.get_size()[0]/2), screen_height - textSurf.get_size()[1] ))
+            if len(snakes) > 1:
+                textSurf = myfont.render(f'Score: {snakes[1].score}', True, snakes[1].color)
+                screenf.blit(textSurf, ( int(screen_width/2 - textSurf.get_size()[0]/2), screen_height - textSurf.get_size()[1] ))
             for i,s in enumerate(snakes):
                 if not s.lost:
                     s.update(apples[i], move)
@@ -381,6 +446,8 @@ def main():
             #print(calc_time[0]/calc_time[1])
 
             move = -1
+
+        screenf.blit(transparent, (0,0))
         pygame.display.flip()
 
 if __name__ == "__main__":
