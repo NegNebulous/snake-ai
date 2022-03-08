@@ -3,11 +3,12 @@ import pygame, random, math, time, datetime, copy
 
 SCALE = [15, 15]
 RELSIZE = [40, 40]
-CHECK_PERCENT = (5/5)
+CHECK_PERCENT = (1/5)
 FRAME_DELAY = 0
 screenf = None
 screen_width, screen_height = (RELSIZE[0]+1)*SCALE[0], (RELSIZE[1]+1)*SCALE[1]
 transparent = None
+#random.seed(10)
 
 def randcolor_bright():
     c = [random.random()*256, random.random()*256, random.random()*256]
@@ -36,7 +37,8 @@ world_speed = 1
 calc_time = [0, 0]
 
 def distance(vec1, vec2):
-    return math.sqrt((vec2[0] - vec1[0])**2 + (vec2[1] - vec1[1])**2)
+    #return math.sqrt((vec2[0] - vec1[0])**2 + (vec2[1] - vec1[1])**2)
+    return abs(vec2[0] - vec1[0]) + abs(vec2[1] - vec1[1])
 
 def getMs():
     #print((datetime.datetime.now().microsecond + datetime.datetime.now().second*1000000 + datetime.datetime.now().minute*1000000*60 )/1000000)
